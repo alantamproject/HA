@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>To-Do List</title>
+<style>
+:root{
+  --bg:#f5f5f7;
+  --card:#ffffff;
+  --card-border:rgba(0,0,0,.06);
+  --text:#1d1d1f;
+  --sub:#86868b;
+  --line:rgba(0,0,0,.08);
+  --hover:rgba(0,0,0,.035);
+  --accent1:#6366f1;
+  --accent2:#8b5cf6;
+  --accent-grad:linear-gradient(135deg,var(--accent1),var(--accent2));
+  --ring:rgba(99,102,241,.35);
+  --danger:#ff3b5c;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
+}
+[data-theme="dark"]{
+  --bg:#0e0f13;
+  --card:#17181f;
+  --card-border:rgba(255,255,255,.07);
+  --text:#f5f5f7;
+  --sub:#8e8e93;
+  --line:rgba(255,255,255,.09);
+  --hover:rgba(255,255,255,.05);
+  --ring:rgba(129,140,248,.25);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  background:var(--bg) no-repeat;
+  background-image:radial-gradient(640px 320px at 50% -90px,var(--ring),transparent 70%);
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  display:flex;justify-content:center;align-items:flex-start;
+  padding:48px 16px 64px;
+  transition:background-color .3s,color .3s;
+  -webkit-font-smoothing:antialiased;
+}
+.card{
+  width:100%;max-width:560px;
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  transition:background-color .3s,border-color .3s;
+}
+
+/* ── Header ─────────────────────────────── */
+.head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:24px 24px 0;
+}
+h1{
+  font-size:26px;font-weight:700;letter-spacing:-.02em;
+}
+h1 .grad{
+  background:var(--accent-grad);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+.date{
+  margin-top:4px;font-size:13px;color:var(--sub);
+}
+
+/* ── Progress ───────────────────────────── */
+.progress-row{
+  display:flex;align-items:center;gap:12px;
+  padding:18px 24px 0;
+}
+.progress{
+  flex:1;height:6px;border-radius:99px;
+  background:var(--line);overflow:hidden;
+}
+.progress-fill{
+  height:100%;width:0%;border-radius:99px;
+  background:var(--accent-grad);
+  transition:width .4s cubic-bezier(.4,0,.2,1);
+}
+.progress-label{font-size:12px;color:var(--sub);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ── Add form ───────────────────────────── */
+.add{
+  display:flex;gap:10px;
+  padding:16px 24px 0;
+}
+.add input{
+  flex:1;height:44px;
+  padding:0 16px;
+  font-size:15px;color:var(--text);
+  background:var(--hover);
+  border:1px solid var(--line);
+  border-radius:12px;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s,background-color .3s;
+}
+.add input::placeholder{color:var(--sub)}
+.add input:focus{border-color:var(--accent1);box-shadow:0 0 0 3px var(--ring);background:transparent}
+.add input.shake{animation:shake .35s}
+@keyframes shake{
+  20%{transform:translateX(-6px)}40%{transform:translateX(5px)}
+  60%{transform:translateX(-3px)}80%{transform:translateX(2px)}
+}
+.add-btn{
+  width:44px;height:44px;flex-shrink:0;
+  display:grid;place-items:center;
+  color:#fff;background:var(--accent-grad);
+  border:none;border-radius:12px;cursor:pointer;
+  box-shadow:0 4px 12px var(--ring);
+  transition:transform .15s,box-shadow .15s,filter .15s;
+}
+.add-btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.add-btn:active{transform:scale(.94)}
+
+/* ── Filters ────────────────────────────── */
+.filters{
+  display:flex;gap:6px;
+  padding:18px 24px 0;
+}
+.pill{
+  padding:7px 14px;font-size:13px;font-weight:600;
+  color:var(--sub);background:transparent;
+  border:1px solid var(--line);border-radius:99px;cursor:pointer;
+  transition:all .2s;
+}
+.pill:hover{background:var(--hover)}
+.pill.active{
+  color:#fff;background:var(--accent-grad);
+  border-color:transparent;box-shadow:0 2px 8px var(--ring);
+}
+
+/* ── List ───────────────────────────────── */
+.list{
+  list-style:none;
+  padding:14px 24px 0;
+}
+.item{
+  position:relative;
+  display:flex;align-items:center;gap:12px;
+  padding:11px 12px;margin:2px -12px;
+  border-radius:12px;
+  transition:background-color .15s,opacity .2s;
+}
+.item:hover{background:var(--hover)}
+.item.enter{animation:item-in .3s cubic-bezier(.4,0,.2,1)}
+.item.removing{animation:item-out .22s ease forwards}
+@keyframes item-in{from{opacity:0;transform:translateY(10px)}}
+@keyframes item-out{to{opacity:0;transform:translateX(28px) scale(.96)}}
+
+.check{
+  width:26px;height:26px;flex-shrink:0;
+  display:grid;place-items:center;
+  border:2px solid var(--line);border-radius:9px;
+  background:transparent;color:transparent;cursor:pointer;
+  transition:all .2s;
+}
+.check:hover{border-color:var(--accent1)}
+.item.done .check{
+  background:var(--accent-grad);border-color:transparent;
+  color:#fff;box-shadow:0 2px 8px var(--ring);
+}
+.check svg{
+  stroke-dasharray:22;stroke-dashoffset:22;
+  transition:stroke-dashoffset .25s .05s ease;
+}
+.item.done .check svg{stroke-dashoffset:0}
+
+.item-text{
+  flex:1;font-size:15px;line-height:1.45;
+  overflow-wrap:anywhere;cursor:pointer;
+  transition:color .2s;
+}
+.item.done .item-text{color:var(--sub);text-decoration:line-through;text-decoration-color:var(--sub)}
+
+.item-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.item:hover .item-actions,.item:focus-within .item-actions{opacity:1}
+@media (hover:none){.item-actions{opacity:1}}
+
+.icon-btn{
+  display:grid;place-items:center;
+  width:32px;height:32px;flex-shrink:0;
+  border:none;border-radius:9px;cursor:pointer;
+  background:transparent;color:var(--sub);
+  transition:all .15s;
+}
+.icon-btn:hover{background:var(--hover);color:var(--text)}
+.icon-btn.danger:hover{background:rgba(255,59,92,.12);color:var(--danger)}
+.theme-toggle{width:38px;height:38px}
+.theme-toggle:hover{background:var(--hover);color:var(--text)}
+.theme-toggle svg .moon{display:none}
+[data-theme="dark"] .theme-toggle svg .sun{display:none}
+[data-theme="dark"] .theme-toggle svg .moon{display:block}
+
+.item-edit-input{
+  flex:1;font-size:15px;font-family:inherit;
+  padding:4px 10px;border-radius:8px;
+  color:var(--text);background:var(--hover);
+  border:1px solid var(--accent1);outline:none;
+  box-shadow:0 0 0 3px var(--ring);
+}
+
+/* ── Empty state ────────────────────────── */
+.empty{
+  padding:44px 24px;text-align:center;color:var(--sub);
+}
+.empty svg{
+  width:72px;height:72px;margin:0 auto 14px;display:block;
+  opacity:.9;
+}
+.empty-text{font-size:14px}
+
+/* ── Footer ─────────────────────────────── */
+.foot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 24px 20px;
+  border-top:1px solid var(--line);
+  margin-top:14px;
+}
+#countLabel{font-size:13px;color:var(--sub)}
+.clear{
+  font-size:13px;font-weight:600;
+  color:var(--sub);background:transparent;border:none;cursor:pointer;
+  padding:6px 10px;border-radius:8px;
+  transition:all .15s;
+}
+.clear:hover:not(:disabled){background:var(--hover);color:var(--text)}
+.clear:disabled{opacity:.4;cursor:default}
+
+/* ── Toast ──────────────────────────────── */
+.toast{
+  position:fixed;left:50%;bottom:28px;
+  transform:translate(-50%,16px);
+  display:flex;align-items:center;gap:12px;
+  padding:11px 16px;
+  background:var(--text);color:var(--bg);
+  border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);
+  font-size:13.5px;opacity:0;pointer-events:none;
+  transition:all .3s cubic-bezier(.4,0,.2,1);
+  max-width:calc(100vw - 32px);
+}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{
+  font-size:13.5px;font-weight:700;
+  color:var(--bg);opacity:.75;background:transparent;border:none;
+  cursor:pointer;padding:4px 8px;border-radius:6px;
+}
+.toast button:hover{opacity:1;background:rgba(255,255,255,.12)}
+
+:focus-visible{outline:2px solid var(--accent1);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <header class="head">
+    <div>
+      <h1><span class="grad">To-Do</span> List</h1>
+      <p class="date" id="dateLabel"></p>
+    </div>
+    <button class="icon-btn theme-toggle" id="themeBtn" aria-label="切換明暗主題" title="切換明暗主題">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <g class="sun"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></g>
+        <path class="moon" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="progress-row">
+    <div class="progress" role="progressbar" aria-label="完成進度"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-label" id="progressLabel"></span>
+  </div>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="addInput" type="text" placeholder="新增任務，例如：回覆郵件…" maxlength="200" aria-label="新增任務"/>
+    <button type="submit" class="add-btn" aria-label="新增任務">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </form>
+
+  <div class="filters" role="group" aria-label="篩選">
+    <button class="pill active" data-filter="all">全部</button>
+    <button class="pill" data-filter="active">未完成</button>
+    <button class="pill" data-filter="done">已完成</button>
+  </div>
+
+  <ul class="list" id="list" role="list"></ul>
+
+  <div class="empty" id="empty" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="url(#eg)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="eg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+      <circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.8-5.2"/>
+    </svg>
+    <p class="empty-text" id="emptyText"></p>
+  </div>
+
+  <footer class="foot">
+    <span id="countLabel"></span>
+    <button class="clear" id="clearDone" disabled>清除已完成</button>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast" role="status">
+  <span id="toastText"></span>
+  <button id="undoBtn" type="button">復原</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(s){ return document.querySelector(s); };
+var STORAGE_KEY = "todo.v1", THEME_KEY = "todo.theme";
+var tasks = load();
+var filter = "all";
+var editId = null;
+
+var SVG_CHECK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
+var SVG_PENCIL = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+var SVG_TRASH  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
+function load(){
+  try{ var r = JSON.parse(localStorage.getItem(STORAGE_KEY)); return Array.isArray(r) ? r : []; }
+  catch(e){ return []; }
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+function uid(){
+  return (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/* ── theme ── */
+(function(){
+  var t = localStorage.getItem(THEME_KEY);
+  var dark = t === "dark" || (t === null && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+  if (dark) document.documentElement.dataset.theme = "dark";
+})();
+$("#themeBtn").addEventListener("click", function(){
+  var dark = document.documentElement.dataset.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, dark ? "light" : "dark");
+});
+
+/* ── date ── */
+$("#dateLabel").textContent = new Date().toLocaleDateString("zh-Hant", {
+  year: "numeric", month: "long", day: "numeric", weekday: "long"
+});
+
+/* ── add ── */
+$("#addForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var input = $("#addInput");
+  var text = input.value.trim();
+  if (!text){
+    input.classList.remove("shake"); void input.offsetWidth;
+    input.classList.add("shake"); input.focus();
+    return;
+  }
+  var task = { id: uid(), text: text, done: false, createdAt: Date.now() };
+  tasks.push(task); save(); render(task.id);
+  input.value = ""; input.focus();
+});
+
+/* ── filters ── */
+document.querySelectorAll(".pill").forEach(function(p){
+  p.addEventListener("click", function(){
+    filter = p.dataset.filter;
+    document.querySelectorAll(".pill").forEach(function(x){
+      x.classList.toggle("active", x === p);
+    });
+    render();
+  });
+});
+
+/* ── clear done ── */
+$("#clearDone").addEventListener("click", function(){
+  var snap = tasks.slice();
+  var n = tasks.filter(function(t){ return t.done; }).length;
+  if (!n) return;
+  tasks = tasks.filter(function(t){ return !t.done; });
+  save(); render();
+  showToast("已清除 " + n + " 個已完成任務", function(){
+    tasks = snap; save(); render();
+  });
+});
+
+/* ── render ── */
+function visibleTasks(){
+  if (filter === "active") return tasks.filter(function(t){ return !t.done; });
+  if (filter === "done")   return tasks.filter(function(t){ return t.done; });
+  return tasks;
+}
+
+function render(animateId){
+  var list = $("#list");
+  list.innerHTML = "";
+  var items = visibleTasks();
+
+  var empty = $("#empty");
+  if (!items.length){
+    empty.hidden = false;
+    $("#emptyText").textContent = filter !== "all"
+      ? "此分類沒有任務"
+      : (tasks.length ? "沒有符合的任務" : "還沒有任務，新增一個吧");
+  } else empty.hidden = true;
+
+  items.forEach(function(t){ list.appendChild(makeItem(t, animateId === t.id)); });
+
+  var done = tasks.filter(function(t){ return t.done; }).length;
+  var total = tasks.length;
+  $("#progressFill").style.width = total ? Math.round(done / total * 100) + "%" : "0%";
+  $("#progressLabel").textContent = total ? done + " / " + total + " 已完成" : "";
+  $("#countLabel").textContent = total ? (total - done) + " 項未完成" : "";
+  var cd = $("#clearDone");
+  cd.disabled = done === 0;
+}
+
+function makeItem(t, animate){
+  var li = document.createElement("li");
+  li.className = "item" + (t.done ? " done" : "") + (animate ? " enter" : "");
+  li.dataset.id = t.id;
+
+  var box = document.createElement("button");
+  box.className = "check";
+  box.setAttribute("role", "checkbox");
+  box.setAttribute("aria-checked", String(t.done));
+  box.setAttribute("aria-label", t.done ? "標記為未完成" : "標記為已完成");
+  box.innerHTML = SVG_CHECK;
+  box.addEventListener("click", function(){
+    t.done = !t.done; save(); render();
+  });
+
+  var text = document.createElement("span");
+  text.className = "item-text";
+  text.textContent = t.text;
+  text.title = "點擊編輯";
+  text.addEventListener("click", function(){ startEdit(t, li); });
+
+  var actions = document.createElement("div");
+  actions.className = "item-actions";
+
+  var edit = document.createElement("button");
+  edit.className = "icon-btn";
+  edit.setAttribute("aria-label", "編輯任務");
+  edit.title = "編輯";
+  edit.innerHTML = SVG_PENCIL;
+  edit.addEventListener("click", function(){ startEdit(t, li); });
+
+  var del = document.createElement("button");
+  del.className = "icon-btn danger";
+  del.setAttribute("aria-label", "刪除任務");
+  del.title = "刪除";
+  del.innerHTML = SVG_TRASH;
+  del.addEventListener("click", function(){ removeTask(t, li); });
+
+  actions.appendChild(edit); actions.appendChild(del);
+  li.appendChild(box); li.appendChild(text); li.appendChild(actions);
+  return li;
+}
+
+/* ── edit ── */
+function startEdit(t, li){
+  if (editId) return;
+  editId = t.id;
+  var textEl = li.querySelector(".item-text");
+  var input = document.createElement("input");
+  input.className = "item-edit-input";
+  input.value = t.text;
+  input.maxLength = 200;
+  input.setAttribute("aria-label", "編輯任務");
+  textEl.replaceWith(input);
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+
+  var finished = false;
+  function commit(cancel){
+    if (finished) return;
+    finished = true;
+    var v = input.value.trim();
+    if (!cancel && v && v !== t.text) t.text = v;
+    save(); editId = null; render();
+  }
+  input.addEventListener("keydown", function(e){
+    if (e.key === "Enter"){ e.preventDefault(); commit(false); }
+    else if (e.key === "Escape") commit(true);
+  });
+  input.addEventListener("blur", function(){ commit(false); });
+}
+
+/* ── delete (animated + undo) ── */
+function removeTask(t, li){
+  li.classList.add("removing");
+  setTimeout(function(){
+    var idx = tasks.indexOf(t);
+    if (idx > -1) tasks.splice(idx, 1);
+    save(); render();
+    showToast("已刪除任務", function(){
+      tasks.splice(Math.min(idx, tasks.length), 0, t);
+      save(); render();
+    });
+  }, 220);
+}
+
+/* ── toast ── */
+var toastTimer = null, toastUndo = null;
+function showToast(msg, undoFn){
+  toastUndo = undoFn;
+  $("#toastText").textContent = msg;
+  $("#undoBtn").style.display = undoFn ? "" : "none";
+  var toast = $("#toast");
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toast.classList.remove("show"); }, 4000);
+}
+$("#undoBtn").addEventListener("click", function(){
+  if (toastUndo) toastUndo();
+  toastUndo = null;
+  $("#toast").classList.remove("show");
+});
+
+render();
+})();
+</script>
+</body>
+</html>
